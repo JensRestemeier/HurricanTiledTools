@@ -205,14 +205,14 @@ def convertMap(inputPath, outputPath):
 		("property", {"name":"time_limit","value":timelimit}, []),
 		("property", {"name":"power_block","value":powerblock}, []),
 		("property", {"name":"flashlight","value":flashlight}, []),
-		("property", {"name":"watercolour1.r","value":(col1>>0)&255}, []),
-		("property", {"name":"watercolour1.g","value":(col1>>8)&255}, []),
-		("property", {"name":"watercolour1.b","value":(col1>>16)&255}, []),
-		("property", {"name":"watercolour1.a","value":(col1>>24)&255}, []),
-		("property", {"name":"watercolour2.r","value":(col2>>0)&255}, []),
-		("property", {"name":"watercolour2.g","value":(col2>>8)&255}, []),
-		("property", {"name":"watercolour2.b","value":(col2>>16)&255}, []),
-		("property", {"name":"watercolour2.a","value":(col2>>24)&255}, []),
+		("property", {"name":"watercolour1.a","value":(col1>>0)&255}, []),
+		("property", {"name":"watercolour1.b","value":(col1>>8)&255}, []),
+		("property", {"name":"watercolour1.g","value":(col1>>16)&255}, []),
+		("property", {"name":"watercolour1.r","value":(col1>>24)&255}, []),
+		("property", {"name":"watercolour2.a","value":(col2>>0)&255}, []),
+		("property", {"name":"watercolour2.b","value":(col2>>8)&255}, []),
+		("property", {"name":"watercolour2.g","value":(col2>>16)&255}, []),
+		("property", {"name":"watercolour2.r","value":(col2>>24)&255}, []),
 		("property", {"name":"scroll_back","value":scrollback}, [])
 	    ])
 	])

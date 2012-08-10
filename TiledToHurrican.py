@@ -121,21 +121,21 @@ def getProperties(elem):
 			base = 0
 		    value = int(value)
 		    for component in mask[::-1]:
-			if component == "a":
+			if component == "r":
 			    base &= ~0xFF000000
-			    base |= (value & 0xFF) << 24
-			    value >>= 8
-			elif component == "r":
-			    base &= ~0x00FF0000
-			    base |= (value & 0xFF) << 16
+			    base |= max(0, min(255, value)) << 24
 			    value >>= 8
 			elif component == "g":
-			    base &= ~0x0000FF00
-			    base |= (value & 0xFF) << 8
+			    base &= ~0x00FF0000
+			    base |= max(0, min(255, value)) << 16
 			    value >>= 8
 			elif component == "b":
+			    base &= ~0x0000FF00
+			    base |= max(0, min(255, value)) << 8
+			    value >>= 8
+			elif component == "a":
 			    base &= ~0x000000FF
-			    base |= (value & 0xFF)
+			    base |= max(0, min(255, value))
 			    value >>= 8
 			else:
 			    logging.warning("unknown component %s" % component)
@@ -388,6 +388,8 @@ def convertMap(inputPath, outputPath):
 		    flags |= HurricanMap.bi_animate_front
 		elif key == "damage":
 		    flags |= HurricanMap.bi_damage
+		elif key == "water":
+		    flags |= HurricanMap.bi_water
 		elif key == "conv_l":
 		    flags |= HurricanMap.bi_conv_l
 		elif key == "conv_r":
