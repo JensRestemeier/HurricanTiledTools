@@ -81,7 +81,11 @@ $ python2.7 publish.py <rss_feed> <level_dir_or_level_zip>
 ```
 
 The script expects a manifest.xml file in the level dir, that is a stripped-down item entry for the rss feed (i.e. minus the automatically generated parts). If no manifest exists a template will be generated, and if no rss feed exists a template for that will be generated as well. The script can publish a zip file as well, but then it can't create a template manifest.xml if it doesn't exist. Both the RSS feed and the manifest.xml template should be edited before publishing, because you need to change the descriptions, names and urls. You can change the guid as well if you don't want a random one, but it should stay unchanged after you publish a level. Future version will use the guid when merging entries from several separate RSS feeds.
+With a bit of extra free time I could probably add some kind of wx or Tk UI for this.
 
 You will then have to upload the resulting .rss and .zip files to your web space. 
 
-With a bit of extra free time I could probably add some kind of wx or Tk UI for this.
+The inspiration for this is the [Appcast](http://connectedflow.com/appcasting/) system used for example by [Sparkle](http://sparkle.andymatuschak.org/) on MacOS. A launcher can use this to automtially install
+and update levels for Hurrican. My Hurrican launcher (to be released "real soon now") will use this together with the text
+based format that the Windows version was going to use.
+
