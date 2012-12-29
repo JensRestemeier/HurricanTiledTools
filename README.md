@@ -64,7 +64,7 @@ Again, you can use one of the converted levels as an example.
 
 T2002ToTiled.py
 ---------------
-This converts a T2002 level to Tiled format. This was mostly a test for me, and I probably won't be maintaining it. Feel free to fork and modify it.
+This converts a [T2002](http://www.pekaro.de/t2002.html) level to Tiled format. This was mostly a test for me, and I probably won't be maintaining it. Feel free to fork and modify it.
 
 ```bash
 $ python2.7 T2002ToTiled.py <mapname>
