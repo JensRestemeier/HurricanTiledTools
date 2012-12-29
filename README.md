@@ -1,34 +1,37 @@
 HurricanTiledTools
 ==================
-Work in progress, not ready for primetime...
+Work in progress, not ready for primetime... But it is an option for advanced users who don't want to (or can't) run the 
+original editor in a Windows VM. As always, make regular backups of important data, especially before running new and untested
+scripts.
 
 General
 -------
-These are python scripts and data files to create levels for Hurrican with Tiled.
+These are python scripts and data files to create levels for Hurrican with Tiled. Tiled uses an XML formatted file with the 
+extension .tmx, and Hurrican uses a binary file with the extension .map.
 
 These scripts requires Python 2.7 ( http://www.python.org/getit/releases/2.7/ , don't download a newer version unless you're able to fix any language or api differences!), and the python imaging library ( http://www.pythonware.com/products/pil/ ). 
 
-You'll need access to the data from the game. On windows you should follow the instructions for the original editor and unrar the data file. On MacOS this data is included in the application bundle and you can simply copy it to a convenient location.
+You'll need access to the data from the game. On windows you should follow the instructions for the original editor ( http://www.turrican.gamevoice.de/hurrican_site/forum/showthread.php?id=265 )
+and unrar the data file. In case the forum post disappears, rename "hurrican.dat" into "hurrican.rar", and use the password "kochello". 
+On MacOS this data is included in the application bundle and you can simply copy it to a convenient location.
 
 HurricanToTiled.py
 ------------------
 This is a tool to convert a Hurrican format map for Tiled. You can use a map created by this tool as a template for creating your own levels.
 
 ```bash
-$ python2.7 HurricanToTiled.py PATH_TO_HURRICAN_DATA/cave.map -o cave.tmx
+$ python2.7 HurricanToTiled.py <map_file> -o <tmx_file> [-S <search_path_for_tiles>]
 ```
 
-It produces a tmx file in the same directory. If for some reason the converter has trouble finding the tilesets you can use the -S option to add a search path.
+If for some reason the converter has trouble finding the tilesets you can use the -S option to add a search path.
 
 TiledToHurrican.py
 ------------------
 This produces a Hurrican level from Tiled. As an example you should look at a file produced by HurricanToTiled.py.
 
 ```bash
-$ python2.7 TiledToHurrican.py cave.tmx -o cave.map
+$ python2.7 TiledToHurrican.py <tmx_file> -o <map_file>
 ```
-
-The map file doesn't contain a path for tiles, so the names are searched in the map directory and the data directory.
 
 Generally the rules are:
 - layer names don't matter, except for image layers. Image layers are used to set the scrolling backdrop layers.
@@ -43,17 +46,18 @@ The header information from Hurrican is translated into map properties:
 * bgm_level - music to play during the level
 * bgm_boss - music to play during boss fights
 * time_limit - time limit
-* power_block - which power block design to use.
+* power_block - which power block design to use
 * flashlight - limited visibiliy
 * watercolour1.r - water colour 1 red component
 * watercolour1.g - water colour 1 green component
 * watercolour1.b - water colour 1 blue component
-* watercolour1.a - water colou1 1 alpha component
+* watercolour1.a - water colour 1 alpha component
 * watercolour2.r - water colour 2 red component
 * watercolour2.g - water colour 2 green component
 * watercolour2.b - water colour 2 blue component
 * watercolour2.a - water colour 2 alpha component
-* scroll_back - enable scrolling for the backgdrop layers.
+* scroll_back - enable scrolling for the backdrop layers
+
 Again, you can use one of the converted levels as an example.
 
 T2002ToTiled.py
@@ -61,7 +65,7 @@ T2002ToTiled.py
 This converts a T2002 level to Tiled format. This was mostly a test for me, and I probably won't be maintaining it. Feel free to fork and modify it.
 
 ```bash
-$ python2.7 HurricanToTiled.py <mapname>
+$ python2.7 T2002ToTiled.py <mapname>
 ```
 
 This creates a tmx file in the same directory and converts the .bmp file with the tiles into a .png file.
