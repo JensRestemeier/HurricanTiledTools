@@ -6,12 +6,14 @@ scripts.
 
 General
 -------
-These are python scripts and data files to create levels for Hurrican with Tiled. Tiled uses an XML formatted file with the 
+These are python scripts and data files to create levels for [Hurrican](http://turrican.gamevoice.de/hurrican_site/) with [Tiled](http://www.mapeditor.org/). Tiled uses an XML formatted file with the 
 extension .tmx, and Hurrican uses a binary file with the extension .map.
 
-These scripts requires Python 2.7 ( http://www.python.org/getit/releases/2.7/ , don't download a newer version unless you're able to fix any language or api differences!), and the python imaging library ( http://www.pythonware.com/products/pil/ ). 
+You can experiment with my [forked version of Tiled](http://github.com/JensRestemeier/tiled) that supports colour layers to edit the lighting in a Hurrican level.
 
-You'll need access to the data from the game. On windows you should follow the instructions for the original editor ( http://www.turrican.gamevoice.de/hurrican_site/forum/showthread.php?id=265 )
+These scripts requires [Python 2.7](http://www.python.org/getit/releases/2.7/) (don't download a newer version unless you're able to fix any language or api differences!), and the [python imaging library](http://www.pythonware.com/products/pil/). 
+
+You'll need access to the data from the game. On windows you should follow the [instructions for the original editor](http://www.turrican.gamevoice.de/hurrican_site/forum/showthread.php?id=265)
 and unrar the data file. In case the forum post disappears, rename "hurrican.dat" into "hurrican.rar", and use the password "kochello". 
 On MacOS this data is included in the application bundle and you can simply copy it to a convenient location.
 
