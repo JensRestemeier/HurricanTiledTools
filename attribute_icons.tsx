@@ -104,4 +104,24 @@
    <property name="tex_right" value="1"/>
   </properties>
  </tile>
+ <tile id="30">
+  <properties>
+   <property name="lock_fg" value="1"/>
+  </properties>
+ </tile>
+ <tile id="31">
+  <properties>
+   <property name="lock_bg" value="1"/>
+  </properties>
+ </tile>
+ <tile id="32">
+  <properties>
+   <property name="lock_colour" value="1"/>
+  </properties>
+ </tile>
+ <tile id="33">
+  <properties>
+   <property name="lock_attributes" value="1"/>
+  </properties>
+ </tile>
 </tileset>
