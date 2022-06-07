@@ -17,7 +17,7 @@ On MacOS this data is included in the application bundle and you can simply copy
 This is a tool to convert a Hurrican format map for Tiled. You can use a map created by this tool as a template for creating your own levels.
 
 ```bash
-$ python2.7 HurricanToTiled.py <map_file> -o <tmx_file> [-S <search_path_for_tiles>]
+$ python HurricanToTiled.py <map_file> -o <tmx_file> [-S <search_path_for_tiles>]
 ```
 
 If for some reason the converter has trouble finding the tilesets you can use the -S option to add a search path. I fixed up the custom XML code to use ElementTree, and
