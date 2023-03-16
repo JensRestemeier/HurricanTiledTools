@@ -339,7 +339,7 @@ def convertMap(inputPath, outputPath):
                     gids = [struct.unpack_from("<I", buffer, x * 4)[0] for x in range(len(buffer)/4)]
                     layers.append((properties, gids))
                 else:
-                    loging.error("only compression zlib and encoding base64 are supported")
+                    logging.error("only compression zlib and encoding base64 are supported")
             elif elem.tag == "tileset":
                 firstgid = int(elem.get("firstgid"))
                 source = elem.get("source")

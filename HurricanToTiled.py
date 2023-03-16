@@ -1,10 +1,39 @@
-import struct, os, array, math, zlib, base64, random, argparse, logging
+# convert a hurrican map into Tiled format. It does as little transform as necessary
+# Tiled doesn't have a "colour tint" layer, so we fake that with a custom colour layer.
+
+import struct, os, zlib, base64, argparse, logging
 import xml.etree.ElementTree as ET
 from PIL import Image
 
 from HurricanObjects import object_info
 
 searchPath = []
+
+attr_name = [
+    "wall", #  0x000001
+    "enemy_wall", #  0x000002
+    "platform", #  0x000004
+    "use_light", #  0x000008
+    "overlap", #  0x000010
+    "animate_back", #  0x000020
+    "animate_front", #  0x000040
+    "water", #  0x000080
+    "damage", #  0x000100
+    "conv_l", #  0x000200
+    "conv_r", #  0x000400
+    "turn", #  0x000800
+    "destroyable", #  0x001000
+    "tex_left", #  0x002000
+    "overlight", #  0x004000
+    "swamp", #  0x008000 - sink
+    "ice",   #  0x010000
+    "tex_down", #  0x020000
+    "waterfall", #  0x040000
+    "tex_right", #  0x080000
+    "", # 0x100000
+    "ramp_l", # 0x200000
+    "ramp_r", # 0x400000
+    "liquid"] # 0x800000
 
 def findHurricanExe(searchDir):
     hurripathTxt = os.path.join(searchDir, "hurripath.txt")
@@ -54,116 +83,99 @@ def convertMap(inputPath, outputPath):
     os.makedirs(outputDir, exist_ok=True)
     searchPath.append(mapDir)
 
-    f = open(inputPath, "rb")
+    with open(inputPath, "rb") as f:
 
-    # Header
-    (header, static_image, back_image, front_image, clouds_image, timelimit, tileset_count) = struct.unpack("<146s24s24s24s26siB", f.read(249))
-    # print (header, static_image, back_image, front_image, clouds_image, timelimit, tileset_count) 
-    header = reduce(header)
-    
-    tileset_paths = []
-    for i in range(tileset_count):
-        texturePath = findFile(reduce(f.read(16)))
-        logging.info("loading %s..." % texturePath)
-        im = Image.open(texturePath)
-        name,ext = os.path.splitext(os.path.basename(texturePath))
-        if ext.lower() == ".bmp":
-            texturePath = os.path.abspath(os.path.join(outputDir, name + ".png"))
-            if not os.path.exists(texturePath):
-                im.save(texturePath)
-        tileset_paths.append((texturePath, len(im.getbands()) < 4))
+        # Header
+        (header, static_image, back_image, front_image, clouds_image, timelimit, tileset_count) = struct.unpack("<146s24s24s24s26siB", f.read(249))
+        # print (header, static_image, back_image, front_image, clouds_image, timelimit, tileset_count) 
+        header = reduce(header)
+        
+        tileset_paths = []
+        for i in range(tileset_count):
+            texturePath = findFile(reduce(f.read(16)))
+            logging.info("loading %s..." % texturePath)
+            im = Image.open(texturePath)
+            name,ext = os.path.splitext(os.path.basename(texturePath))
+            if ext.lower() == ".bmp":
+                texturePath = os.path.abspath(os.path.join(outputDir, name + ".png"))
+                if not os.path.exists(texturePath):
+                    im.save(texturePath)
+            tileset_paths.append((texturePath, len(im.getbands()) < 4))
 
-    f.seek((64-tileset_count) * 16 + 3, os.SEEK_CUR)
-    
-    # map
-    (width, height, object_count, scrollback, stuff2, stuff3, stuff4) = struct.unpack("<iii4B", f.read(16))
-    map = []
-    for r in range(width):
-        col = []
-        for c in range(height):
-            col.append(struct.unpack("<BBBBII", f.read(12))) # tileset_background, tileset_foreground, index1, index2, colour, flags
-        map.append(col)
+        f.seek((64-tileset_count) * 16 + 3, os.SEEK_CUR)
+        
+        # map
+        (width, height, object_count, scrollback, stuff2, stuff3, stuff4) = struct.unpack("<iii4B", f.read(16))
+        map = []
+        for r in range(width):
+            col = []
+            for c in range(height):
+                col.append(struct.unpack("<BBBBII", f.read(12))) # tileset_background, tileset_foreground, index1, index2, colour, flags
+            map.append(col)
 
-    # objects
-    objects = []
-    for o in range(object_count):
-        objects.append(struct.unpack("<iiibbHii", f.read(24))) # index, x, y, flags, difficulty, ?, val1, val2
+        # objects
+        objects = []
+        for o in range(object_count):
+            objects.append(struct.unpack("<iiibbHii", f.read(24))) # index, x, y, flags, difficulty, ?, val1, val2
 
-    # difficulty: 0: easy, 1: medium, 2: hard
+        # difficulty: 0: easy, 1: medium, 2: hard
 
-    (bgm_level, bgm_boss, powerblock, col1, col2, flashlight) = struct.unpack("<30s30si8s8si", f.read(84))
+        (bgm_level, bgm_boss, powerblock, col1, col2, flashlight) = struct.unpack("<30s30si8s8si", f.read(84))
 
-    bgm_level = reduce(bgm_level) # bgm level
-    bgm_boss = reduce(bgm_boss) # bgm boss
-    col1 = int(reduce(col1), 16) # water1
-    col2 = int(reduce(col2), 16) # water2
-
-    f.close()
+        bgm_level = reduce(bgm_level) # bgm level
+        bgm_boss = reduce(bgm_boss) # bgm boss
+        col1 = int(reduce(col1), 16) # water1
+        col2 = int(reduce(col2), 16) # water2
 
     tileset_background = []
     tileset_foreground = []
     tilemap_vcolors = []
 
     tileset_attr = []
-    tileset_count = [0] * 20
-    for i in range(20):
-            tileset_attr.append([])
+    tileset_count = [0] * len(attr_name)
+    for i in range(len(attr_name)):
+        tileset_attr.append([])
 
+    animated_tiles = set()
     tileset_vcolors = []
     vcolor_map = {}
     for y in range(height):
-            for x in range(width):
-                tile = map[x][y]
-                if tile[2] > 0:
-                    tileset_background.append(tile[0] * 144 + tile[2])
-                else:
-                    tileset_background.append(0)
-                if tile[3] > 0:
-                    tileset_foreground.append(tile[1] * 144 + tile[3])
-                else:
-                    tileset_foreground.append(0)
-            
-                col = ((tile[4]>>0)&255,(tile[4]>>8)&255,(tile[4]>>16)&255,(tile[4]>>24)&255)
-                try:
-                    idx = vcolor_map[col]
-                except KeyError:
-                    idx = len(tileset_vcolors)
-                    tileset_vcolors.append(col)
-                    vcolor_map[col] = idx
-                tilemap_vcolors.append(idx)
+        for x in range(width):
+            tile = map[x][y]
+            if tile[2] > 0:
+                tileset_background.append(tile[0] * 144 + tile[2])
+            else:
+                tileset_background.append(0)
+            if tile[3] > 0:
+                tileset_foreground.append(tile[1] * 144 + tile[3])
+            else:
+                tileset_foreground.append(0)
+        
+            col = ((tile[4]>>0)&255,(tile[4]>>8)&255,(tile[4]>>16)&255,(tile[4]>>24)&255)
+            try:
+                idx = vcolor_map[col]
+            except KeyError:
+                idx = len(tileset_vcolors)
+                tileset_vcolors.append(col)
+                vcolor_map[col] = idx
+            tilemap_vcolors.append(idx)
 
-                for i in range(20):
-                        if tile[5] & (1<<i):
-                            tileset_attr[i].append(i+1)
-                            tileset_count[i] += 1
-                        else:
-                            tileset_attr[i].append(0)
+            # they'll be always animated in Tiled, but NeoGeo export can set the animate flag only when required.
+            if tile[5] & 0x20:
+                animated_tiles.add(tile[0] * 144 + tile[2])
+            if tile[5] & 0x40:
+                animated_tiles.add(tile[1] * 144 + tile[3])
+
+            for i in range(len(attr_name)):
+                if tile[5] & (1<<i):
+                    tileset_attr[i].append(i+1)
+                    tileset_count[i] += 1
+                else:
+                    tileset_attr[i].append(0)
 
     if True:
         # todo: project file with list of levels 
-
-        attr_name = [
-            "wall", #  0x000001
-            "enemy_wall", #  0x000002
-            "platform", #  0x000004
-            "use_light", #  0x000008
-            "overlap", #  0x000010
-            "animate_back", #  0x000020
-            "animate_front", #  0x000040
-            "water", #  0x000080
-            "damage", #  0x000100
-            "conv_l", #  0x000200
-            "conv_r", #  0x000400
-            "turn", #  0x000800
-            "destroyable", #  0x001000
-            "tex_left", #  0x002000
-            "overlight", #  0x004000
-            "swamp", #  0x008000
-            "ice",   #  0x010000
-            "tex_down", #  0x020000
-            "waterfall", #  0x040000
-            "tex_right"] #  0x080000
-        
+    
         mapData = ET.Element("map", {"version":"1.0", "orientation":"orthogonal", "width":str(width), "height":str(height), "tilewidth":str(20), "tileheight":str(20)})
         properties = ET.SubElement(mapData, "properties")
         #property = ET.SubElement(properties, "property", {"name":"name","value":name}) # export name. makes it possible to keep several variations of a level.
@@ -173,14 +185,11 @@ def convertMap(inputPath, outputPath):
         property = ET.SubElement(properties, "property", {"name":"time_limit","type":"int","value":str(timelimit)})
         property = ET.SubElement(properties, "property", {"name":"power_block","type":"int","value":str(powerblock)})
         property = ET.SubElement(properties, "property", {"name":"flashlight","type":"bool", "value":"true" if flashlight!=0 else "false"})
-        property = ET.SubElement(properties, "property", {"name":"watercolour1.a","type":"int","value":str((col1>>0)&255)})
-        property = ET.SubElement(properties, "property", {"name":"watercolour1.b","type":"int","value":str((col1>>8)&255)})
-        property = ET.SubElement(properties, "property", {"name":"watercolour1.g","type":"int","value":str((col1>>16)&255)})
-        property = ET.SubElement(properties, "property", {"name":"watercolour1.r","type":"int","value":str((col1>>24)&255)})
-        property = ET.SubElement(properties, "property", {"name":"watercolour2.a","type":"int","value":str((col2>>0)&255)})
-        property = ET.SubElement(properties, "property", {"name":"watercolour2.b","type":"int","value":str((col2>>8)&255)})
-        property = ET.SubElement(properties, "property", {"name":"watercolour2.g","type":"int","value":str((col2>>16)&255)})
-        property = ET.SubElement(properties, "property", {"name":"watercolour2.r","type":"int","value":str((col2>>24)&255)})
+
+        r,g,b,a = (col1>>0)&255, (col1>>8)&255, (col1>>16)&255, (col1>>24)&255
+        property = ET.SubElement(properties, "property", {"name":"watercolour1","type":"color","value":"#%02.2x%02.2x%02.2x%02.2x" % (a,r,g,b)})
+        r,g,b,a = (col2>>0)&255, (col2>>8)&255, (col2>>16)&255, (col2>>24)&255
+        property = ET.SubElement(properties, "property", {"name":"watercolour2","type":"color","value":"#%02.2x%02.2x%02.2x%02.2x" % (a,r,g,b)})
         property = ET.SubElement(properties, "property", {"name":"scroll_back","type":"int","value":str(scrollback)})
 
         firstgid = 1
@@ -192,20 +201,19 @@ def convertMap(inputPath, outputPath):
             image = ET.SubElement(tileset, "image", {"source":os.path.relpath(path, outputDir), "width":str(im.width), "height":str(im.height)})
             if trans:
                 image.set("trans", "ff00ff")
-            if name.lower() == "s_arrow":
-                # add tile animation for arrows:
-                for y in range(2):
-                    for x in range(8):
-                        tile = ET.SubElement(tileset, "tile", id=str(y * 12 + x))
-                        animation = ET.SubElement(tile, "animation")
-                        for i in range(4):
-                            frame = ET.SubElement(animation, "frame", tileid=str(y*12+x+i*36), duration=str(100))
+            # This assumes that tiles that are animated are always animated.
+            for i in range(3*12):
+                if i + firstgid in animated_tiles:
+                    tile = ET.SubElement(tileset, "tile", id=str(i))
+                    animation = ET.SubElement(tile, "animation")
+                    for j in range(4):
+                        frame = ET.SubElement(animation, "frame", tileid=str(i+j*36), duration=str(16*4))
 
             firstgid += 144
 
         attr_icons_path = os.path.abspath("attribute_icons.tsx")
         tileset = ET.SubElement(mapData, "tileset", {"firstgid":str(firstgid), "source":os.path.relpath(attr_icons_path, outputDir), "tilewidth":str(20), "tileheight":str(20)})
-        for i in range(20):
+        for i in range(len(tileset_attr)):
             for j in range(len(tileset_attr[i])):
                     if tileset_attr[i][j] > 0:
                             tileset_attr[i][j] += firstgid - 1
@@ -226,28 +234,32 @@ def convertMap(inputPath, outputPath):
         vcolor_start = firstgid
         tileset = ET.SubElement(mapData, "tileset", {"firstgid":str(firstgid), "name":"colors", "tilewidth":str(20), "tileheight":str(20)})
         image = ET.SubElement(tileset, "image", {"source":os.path.relpath(vcolors_path, outputDir), "width":str(im.width), "height":str(im.height)})
-
+        for i in range(len(tileset_vcolors)):
+            tile = ET.SubElement(tileset, "tile", id=str(i))
+            properties = ET.SubElement(tile, "properties")
+            r,g,b,a = tileset_vcolors[i]
+            property = ET.SubElement(properties, "property", {"name":"color", "type":"color", "value":"#%02.2x%02.2x%02.2x%02.2x" % (a,r,g,b)})
         firstgid += rows * cols
 
         imagepath = findFile(reduce(clouds_image))
         im = Image.open(imagepath)
-        imagelayer = ET.SubElement(mapData, "imagelayer", {"name":"clouds", "width":str(im.width), "height":str(im.height)})
-        image = ET.SubElement(imagelayer, "image", {"source":os.path.relpath(imagepath, outputDir)})
+        imagelayer = ET.SubElement(mapData, "imagelayer", {"name":"clouds", "width":str(im.width), "height":str(im.height), "repeatx":"1"})
+        image = ET.SubElement(imagelayer, "image", {"source":os.path.relpath(imagepath, outputDir), "trans":"ff00ff"})
 
         imagepath = findFile(reduce(static_image))
         im = Image.open(imagepath)
-        imagelayer = ET.SubElement(mapData, "imagelayer", {"name":"static", "width":str(im.width), "height":str(im.height)})
-        image = ET.SubElement(imagelayer, "image", {"source":os.path.relpath(imagepath, outputDir)})
+        imagelayer = ET.SubElement(mapData, "imagelayer", {"name":"static", "width":str(im.width), "height":str(im.height), "repeatx":"1"})
+        image = ET.SubElement(imagelayer, "image", {"source":os.path.relpath(imagepath, outputDir), "trans":"ff00ff"})
 
         imagepath = findFile(reduce(back_image))
         im = Image.open(imagepath)
-        imagelayer = ET.SubElement(mapData, "imagelayer", {"name":"back", "width":str(im.width), "height":str(im.height)})
-        image = ET.SubElement(imagelayer, "image", {"source":os.path.relpath(imagepath, outputDir)})
+        imagelayer = ET.SubElement(mapData, "imagelayer", {"name":"back", "width":str(im.width), "height":str(im.height), "repeatx":"1"})
+        image = ET.SubElement(imagelayer, "image", {"source":os.path.relpath(imagepath, outputDir), "trans":"ff00ff"})
 
         imagepath = findFile(reduce(front_image))
         im = Image.open(imagepath)
-        imagelayer = ET.SubElement(mapData, "imagelayer", {"name":"front", "width":str(im.width), "height":str(im.height)})
-        image = ET.SubElement(imagelayer, "image", {"source":os.path.relpath(imagepath, outputDir)})
+        imagelayer = ET.SubElement(mapData, "imagelayer", {"name":"front", "width":str(im.width), "height":str(im.height), "repeatx":"1"})
+        image = ET.SubElement(imagelayer, "image", {"source":os.path.relpath(imagepath, outputDir), "trans":"ff00ff"})
         
         layer = ET.SubElement(mapData, "layer", {"name":"background", "width":str(width), "height":str(height)})
         data = ET.SubElement(layer, "data", {"encoding":"base64", "compression":"zlib"})
@@ -350,7 +362,9 @@ def convertMap(inputPath, outputPath):
         logging.info("writing %s..." % outputPath)
         os.makedirs(os.path.dirname(outputPath), exist_ok=True)
         with open(outputPath, 'wb') as f:
-            ET.ElementTree(mapData).write(f, encoding='utf-8', xml_declaration=True)
+            tree = ET.ElementTree(mapData)
+            ET.indent(tree, space="\t")
+            tree.write(f, encoding='utf-8', xml_declaration=True)
 
     logging.info("done.")
 

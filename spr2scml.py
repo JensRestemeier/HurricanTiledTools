@@ -11,94 +11,106 @@ def convertSprites(base_dir, output_dir):
     folder_lookup = {}
     entity_lookup = {}
 
+    # these are premultiplied effects texture, try to recover alpha. Alpha * colour should restore the original.
+    # this helps with correctly handling these effects on platforms with limited alpha.
     recover_alpha = {
+        "bratklopsshot":True,
+        "blitzflash1":True,
+        "blitzflash2":True,
+        "blitzflash3":True,
+        "blitzflash4":True,
+        "blitzstrahl1":True,
+        "blitzstrahl2":True,
+        "blitzstrahl3":True,
+        "blitzstrahl4":True,
         "blitztexture":True,
-        "lavamann":True,
-        "droneflame":True,
-        "Blitzflash1":True,
-        "Blitzflash2":True,
-        "Blitzflash3":True,
-        "Blitzflash4":True,
-        "Blitztexture":True,
-        "SchussFlamme":True,
-        "SchussFlamme2":True,
-        "SchussFlamme3":True,
-        "SchussFlammeFlare":True,
-        "Loading":True,
+        "loading":True,
+        "loadingbar":True,
+        "miniflare":True,
+        "schussflamme":True,
+        "schussflamme2":True,
+        "schussflamme3":True,
+        "schussflammeflare":True,
+        "star":True,
         "beamsmoke":True,
         "beamsmoke2":True,
         "beamsmoke5":True,
-        "drache_smoke":True,
-        "evilfunke":True,
-        "evilroundsmoke":True,
-        "explosion-regular":True,
-        "explosion-trace":True,
-        "extracollected":True,
-        "fireball_smoke":True,
-        "flugsacksmoke":True,
-        "giantspiderflare":True,
-        "grenadeflare":True,
-        "kringel":True,
-        "laserflame":True,
-        "laserfunke":True,
-        "lavaflare":True,
-        "MINIFLARE":True,
-        "pharaosmoke":True,
-        "rocketsmoke":True,
-        "Blitzstrahl1":True,
-        "Blitzstrahl2":True,
-        "Blitzstrahl3":True,
-        "Blitzstrahl4":True,
-        "rocketsmokeblue":True,
-        "rocketsmokegreen":True,
-        "evilshot":True,
-        "evilshot2":True,
-        "fetterspinnenlaser":True,
-        "explosion-big":True,
-        "shield":True,
-        "spreadshot_big":True,
-        "shockexplosion":True,
-        "walker-laser":True,
-        "spreadshot":True,
-        "spreadshot2":True,
-        "spreadshot_big2":True,
-        "shotflare":True,
-        "snowflush":True,
-        "spidershotsmoke":True,
-        "stelzlaser":True,
-        "turbinesmoke":True,
-        "ufolaserflare":True,
+        "blauebombe":True,
         "blitzbeam":True,
-        "BRATKLOPSSHOT":True,
+        "blitztexture":True,
+        "bratklopslaser":True,
+        "bratklopsshot2":True,
+        "bubble":True,
+        "drache_smoke":True,
+        "droneflame":True,
         "druckwelle":True,
         "elektropampe":True,
         "evilblitz":True,
         "evilblitz2":True,
+        "evilfunke":True,
+        "evilroundsmoke":True,
+        "evilshot":True,
+        "evilshot2":True,
+        "explosion-big":True,
+        "explosion-regular":True,
+        "explosion-trace":True,
+        "extracollected":True,
+        "fetterspinnenlaser":True,
         "fettespinneshot":True,
         "fettespinneshot2":True,
         "fireball":True,
         "fireball_big":True,
+        "fireball_smoke":True,
         "flame":True,
-        "golemschuss":True,
         "flamme":True,
+        "flugsacksmoke":True,
+        "funke":True,
+        "funke2":True,
+        "giantspiderflare":True,
+        "golemschuss":True,
+        "grenadeflare":True,
+        "kringel":True,
         "laser":True,
         "laser2":True,
         "laserbig":True,
         "laserbig2":True,
+        "laserflame":True,
+        "laserfunke":True,
+        "lasersmoke":True,
+        "lasersmoke_big":True,
+        "lavaflare":True,
+        "lavamann":True,
         "pflanzeschuss":True,
         "pharaolaser":True,
+        "pharaosmoke":True,
         "powerline":True,
+        "powerlinesmoke":True,
+        "rocketsmoke":True,
+        "rocketsmokeblue":True,
+        "rocketsmokegreen":True,
         "rotzshot":True,
+        "shadow":True,
+        "shield":True,
+        "shockexplosion":True,
+        "shotflare":True,
+        "skeletor_flame":True,
+        "skeletor_shot":True,
+        "snowflush":True,
         "spidershot":True,
         "spidershot2":True,
+        "spidershotsmoke":True,
         "spiderslow":True,
+        "spreadshot":True,
+        "spreadshot2":True,
+        "spreadshot_big":True,
+        "spreadshot_big2":True,
+        "spreadshotsmoke":True,
+        "stelzlaser":True,
         "suchschuss2":True,
+        "turbinesmoke":True,
         "ufolaser":True,
-        "bratklopslaser":True,
-        "bratklopsshot2":True,
-        "skeletor_flame":True,
-        "Star":True,
-        "Loadingbar":True,
+        "ufolaserflare":True,
+        "walker-laser":True,
     }
 
     for file in glob.glob(os.path.join(base_dir, "*.cpp")):
@@ -110,10 +122,10 @@ def convertSprites(base_dir, output_dir):
             image_name,_ = os.path.splitext(image)
             print (source_name, target, image, w,h, tw, th, cx, cy)
             im = Image.open(os.path.join(base_dir, "data", image))
-            cx = int(cx)
-            cy = int(cy)
             tw = int(tw)
             th = int(th)
+            cx = max(1, min(int(cx), im.width // tw))
+            cy = max(1, min(int(cy), im.height // th))
 
             # fix up transparency:
             if im.mode == "P":
@@ -148,7 +160,7 @@ def convertSprites(base_dir, output_dir):
 
             # try to recover alpha for pre-multiplied effect textures:
             try:
-                fix_alpha = recover_alpha[image_name]
+                fix_alpha = recover_alpha[image_name.lower()]
             except KeyError:
                 fix_alpha = False
             if fix_alpha:
@@ -158,7 +170,9 @@ def convertSprites(base_dir, output_dir):
                     r,g,b,a = col
                     if a == 255:
                         m = max(r,g,b)
-                        if m < 255 and m > 0:
+                        if m == 0:
+                            data.append((0,0,0,0))
+                        elif m < 255:
                             rf, gf, bf = r/255.0, g/255.0, b/255.0
                             found = False
                             for a in range(m, 256):
@@ -180,8 +194,6 @@ def convertSprites(base_dir, output_dir):
                                     break
                             if not found:
                                 data.append((r,g,b,255))
-                        elif m == 0:
-                            data.append((0,0,0,0))
                         else:
                             data.append(col)
                     else:
@@ -204,17 +216,37 @@ def convertSprites(base_dir, output_dir):
                 entity = {}
                 entity_lookup[source_name] = entity
 
-            # split animaiton info frames:
+            # split animaiton into frames:
             frame_count = cx * cy
             if frame_count > 1:
                 file_id = len(folder.findall("./file"))
+                frame_index = 0
+                pivot_x = 0.5
+                pivot_y = 0.0
+
+                # special case for "Stachelbeere" enemy
+                if image_name.lower() == "stachelbeere":
+                    cx = 5
+
                 for y in range(cy):
+
+                    # special case for "Stachelbeere" enemy
+                    if image_name.lower() == "stachelbeere" and y > 0:
+                        tw = 120 
+                        cx = 3
+                        pivot_x = 0.25
+
                     for x in range(cx):
-                        frame = im.crop((x * tw, y * th, x*tw+tw, y*th+th))
+                        if x*tw+tw > im.width or y*th+th > im.height:
+                            frame = Image.new("RGBA", (tw, th), (0,0,0,0))
+                            tmp = im.crop((x * tw, y * th, min(x*tw+tw, im.width), min(y*th+th,im.height)))
+                            frame.paste(tmp, (0,0))
+                        else:
+                            frame = im.crop((x * tw, y * th, x*tw+tw, y*th+th))
 
                         # on the last row we check if we reached an empty frame
                         if x > 0 and y == (cy-1):
-                            data=frame.getdata()
+                            data = frame.getdata()
                             first = data[0]
                             valid = False
                             for col in data:
@@ -222,15 +254,14 @@ def convertSprites(base_dir, output_dir):
                                     valid = True
                                     break
                             if not valid:
-                                frame_count = y * cx + x
                                 break
 
-                        frame_index = y*cx+x
                         image_path = os.path.join(outDir, "%s.%i.png" % (image_name, frame_index))
                         frame.save(image_path)
-                        file = ET.SubElement(folder, "file", id=str(file_id + frame_index), name=os.path.relpath(image_path, output_dir), width=str(tw), height=str(th), pivot_x=str(0.5), pivot_y=str(0.0))
-                if frame_count > 0:
-                    entity[image_name] = (folder_id, file_id, frame_count)
+                        file = ET.SubElement(folder, "file", id=str(file_id + frame_index), name=os.path.relpath(image_path, output_dir), width=str(tw), height=str(th), pivot_x=str(pivot_x), pivot_y=str(pivot_y))
+                        frame_index += 1
+                if frame_index > 0:
+                    entity[image_name] = (folder_id, file_id, frame_index)
             else:
                 image_path = os.path.join(outDir, image_name + ".png")
                 im.save(image_path)
@@ -274,3 +305,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    # convertSprites("E:\\External\\hurrican_source\\Hurrican", "scml")
