@@ -286,7 +286,9 @@ def convertSprites(base_dir, output_dir):
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     with open(output_path, 'wb') as f:
-        ET.ElementTree(sprite_data).write(f, encoding='utf-8', xml_declaration=True)
+        tree = ET.ElementTree(sprite_data)
+        ET.indent(tree, space="\t")
+        tree.write(f, encoding='utf-8', xml_declaration=True)
 
 def main():
     parser = argparse.ArgumentParser(description="Convert Hurrican sprites into Spriter scml format.")
@@ -304,5 +306,5 @@ def main():
         print ("input path not found")
 
 if __name__ == "__main__":
-    main()
-    # convertSprites("E:\\External\\hurrican_source\\Hurrican", "scml")
+    # main()
+    convertSprites("E:\\External\\hurrican_source\\Hurrican", "scml")

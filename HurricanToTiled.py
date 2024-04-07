@@ -83,6 +83,8 @@ def convertMap(inputPath, outputPath):
     os.makedirs(outputDir, exist_ok=True)
     searchPath.append(mapDir)
 
+    empty = []
+
     with open(inputPath, "rb") as f:
 
         # Header
@@ -90,17 +92,33 @@ def convertMap(inputPath, outputPath):
         # print (header, static_image, back_image, front_image, clouds_image, timelimit, tileset_count) 
         header = reduce(header)
         
+        tile_empty = [0]
         tileset_paths = []
         for i in range(tileset_count):
             texturePath = findFile(reduce(f.read(16)))
             logging.info("loading %s..." % texturePath)
             im = Image.open(texturePath)
             name,ext = os.path.splitext(os.path.basename(texturePath))
-            if ext.lower() == ".bmp":
-                texturePath = os.path.abspath(os.path.join(outputDir, name + ".png"))
-                if not os.path.exists(texturePath):
-                    im.save(texturePath)
+        
+            im = im.convert("RGBA")
+            data = im.getdata()
+            newdata = []
+            for r,g,b,a in data:
+                if r > 0xF0 and b > 0xF0 and g < 0x10:
+                    newdata.append((0,0,0,0))
+                else:
+                    newdata.append((r,g,b,a))
+            im.putdata(newdata)
+
+            texturePath = os.path.abspath(os.path.join(outputDir, name + ".png"))
+            im.save(texturePath)
+
             tileset_paths.append((texturePath, len(im.getbands()) < 4))
+            for t in range(144):
+                x = t % 12
+                y = t // 12
+                bounds = im.crop((x*20,y*20,x*20+20,y*20+20)).getbbox(alpha_only=True)
+                tile_empty.append(bounds == None or bounds[0] == bounds[2])
 
         f.seek((64-tileset_count) * 16 + 3, os.SEEK_CUR)
         
@@ -142,16 +160,21 @@ def convertMap(inputPath, outputPath):
     for y in range(height):
         for x in range(width):
             tile = map[x][y]
-            if tile[2] > 0:
-                tileset_background.append(tile[0] * 144 + tile[2])
-            else:
-                tileset_background.append(0)
-            if tile[3] > 0:
-                tileset_foreground.append(tile[1] * 144 + tile[3])
-            else:
-                tileset_foreground.append(0)
+            back_tile = tile[0] * 144 + tile[2]
+            if tile[2] == 0 or tile_empty[back_tile]:
+                back_tile = 0
+            tileset_background.append(back_tile)
+            front_tile = tile[1] * 144 + tile[3]
+            if tile[3] == 0 or tile_empty[front_tile]:
+                front_tile = 0
+            tileset_foreground.append(front_tile)
+
+            attr = tile[5]
         
             col = ((tile[4]>>0)&255,(tile[4]>>8)&255,(tile[4]>>16)&255,(tile[4]>>24)&255)
+            if front_tile == 0 and back_tile == 0 and attr == 0:
+                 col = (255,255,255,0)
+
             try:
                 idx = vcolor_map[col]
             except KeyError:
@@ -161,13 +184,24 @@ def convertMap(inputPath, outputPath):
             tilemap_vcolors.append(idx)
 
             # they'll be always animated in Tiled, but NeoGeo export can set the animate flag only when required.
-            if tile[5] & 0x20:
+            if attr & 0x20:
                 animated_tiles.add(tile[0] * 144 + tile[2])
-            if tile[5] & 0x40:
+            if attr & 0x40:
                 animated_tiles.add(tile[1] * 144 + tile[3])
 
+            # add "liquid" bit
+            if attr & (0x000080 | 0x008000): # water or swamp?
+                attr |= 0x800000 # liquid
+
+            # add "ramp" bits
+            if x > 0 and y > 0 and x < (width - 1) and y < (height - 1):
+                if (map[x-1][y][5] & 0x000001) and not (map[x][y][5] & 0x000001) and (map[x][y+1][5] & 0x000001) and not (map[x-1][y-1][5] & 0x000001):
+                    attr |= 0x200000
+                if (map[x+1][y][5] & 0x000001) and not (map[x][y][5] & 0x000001) and (map[x][y+1][5] & 0x000001) and not (map[x+1][y-1][5] & 0x000001):
+                    attr |= 0x400000
+
             for i in range(len(attr_name)):
-                if tile[5] & (1<<i):
+                if attr & (1<<i):
                     tileset_attr[i].append(i+1)
                     tileset_count[i] += 1
                 else:
@@ -275,7 +309,7 @@ def convertMap(inputPath, outputPath):
         properties = ET.SubElement(layer, "properties")
         property = ET.SubElement(properties, "property", name="colour", type="bool", value="true")
 
-        for i in range(20):
+        for i in range(24):
             if tileset_count[i] > 0:
                 layer = ET.SubElement(mapData, "layer", {"name":"attr_" + attr_name[i], "width":str(width), "height":str(height), "opacity":"0.5"})
                 data = ET.SubElement(layer, "data", {"encoding":"base64", "compression":"zlib"})
